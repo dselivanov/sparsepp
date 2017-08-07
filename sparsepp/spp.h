@@ -1133,7 +1133,12 @@ private:
         if (retval == NULL)
         {
             // the allocator is supposed to throw an exception if the allocation fails.
-            fprintf(stderr, "sparsehash FATAL ERROR: failed to allocate %d groups\n", num_alloc);
+            // fprintf(stderr, "sparsehash FATAL ERROR: failed to allocate %d groups\n", num_alloc);
+            char buff[100];
+            snprintf(buff, sizeof(buff), "sparsehash FATAL ERROR: failed to allocate %d groups\n", num_alloc);
+            std::string msg = buff;
+            throw std::runtime_error(msg);
+          
             exit(1);
         }
         return retval;
@@ -1684,9 +1689,15 @@ private:
         // allocator (spp::spp_allocator).
         pointer realloc_or_die(pointer /*ptr*/, size_type /*n*/)
         {
-            fprintf(stderr, "realloc_or_die is only supported for "
-                    "spp::spp_allocator\n");
-            exit(1);
+            // fprintf(stderr, "realloc_or_die is only supported for "
+            //         "spp::spp_allocator\n");
+            char buff[100];
+            snprintf(buff, sizeof(buff), "realloc_or_die is only supported for "
+                               "spp::spp_allocator\n");
+            std::string msg = buff;
+            throw std::runtime_error(msg);
+          
+            // exit(1);
             return NULL;
         }
     };
@@ -1710,9 +1721,13 @@ private:
             pointer retval = this->reallocate(ptr, n);
             if (retval == NULL) 
             {
-                fprintf(stderr, "sparsehash: FATAL ERROR: failed to reallocate "
-                        "%lu elements for ptr %p", static_cast<unsigned long>(n), ptr);
-                exit(1);
+                char buff[100];
+                snprintf(buff, sizeof(buff), "sparsehash: FATAL ERROR: failed to reallocate "
+                           "%lu elements for ptr %p", static_cast<unsigned long>(n), ptr);
+                std::string msg = buff;
+                throw std::runtime_error(msg);
+              
+                // exit(1);
             }
             return retval;
         }
@@ -1737,9 +1752,15 @@ private:
             pointer retval = this->reallocate(ptr, n);
             if (retval == NULL) 
             {
-                fprintf(stderr, "sparsehash: FATAL ERROR: failed to reallocate "
-                        "%lu elements for ptr %p", static_cast<unsigned long>(n), ptr);
-                exit(1);
+                // fprintf(stderr, "sparsehash: FATAL ERROR: failed to reallocate "
+                //         "%lu elements for ptr %p", static_cast<unsigned long>(n), ptr);
+              char buff[100];
+              snprintf(buff, sizeof(buff), "sparsehash: FATAL ERROR: failed to reallocate "
+                         "%lu elements for ptr %p", static_cast<unsigned long>(n), ptr);
+              std::string msg = buff;
+              throw std::runtime_error(msg);
+              
+                // exit(1);
             }
             return retval;
         }
