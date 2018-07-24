@@ -60,12 +60,12 @@
 #include <iosfwd>
 #include <ios>
 
-#include <sparsepp/spp_stdint.h>  // includes spp_config.h
-#include <sparsepp/spp_traits.h>
-#include <sparsepp/spp_utils.h>
+#include "spp_stdint.h"  // includes spp_config.h
+#include "spp_traits.h"
+#include "spp_utils.h"
 
 #ifdef SPP_INCLUDE_SPP_ALLOC
-    #include <sparsepp/spp_dlalloc.h>
+    #include "spp_dlalloc.h"
 #endif
 
 #if !defined(SPP_NO_CXX11_HDR_INITIALIZER_LIST)
@@ -1084,31 +1084,36 @@ private:
 #if !defined(SPP_ALLOC_SZ) || (SPP_ALLOC_SZ == 0)
         // aggressive allocation first, then decreasing as sparsegroups fill up
         // --------------------------------------------------------------------
-        static uint8_t s_alloc_batch_sz[SPP_GROUP_SIZE] = { 0 };
-        if (!s_alloc_batch_sz[0])
+        struct alloc_batch_size
         {
             // 32 bit bitmap
             // ........ .... .... .. .. .. .. .  .  .  .  .  .  .  .
             //     8     12   16  18 20 22 24 25 26   ...          32
             // ------------------------------------------------------
-            uint8_t group_sz          = SPP_GROUP_SIZE / 4;
-            uint8_t group_start_alloc = SPP_GROUP_SIZE / 8; //4;
-            uint8_t alloc_sz          = group_start_alloc;
-            for (int i=0; i<4; ++i)
+            SPP_CXX14_CONSTEXPR alloc_batch_size()
+                : data()
             {
-                for (int j=0; j<group_sz; ++j)
+                uint8_t group_sz          = SPP_GROUP_SIZE / 4;
+                uint8_t group_start_alloc = SPP_GROUP_SIZE / 8; //4;
+                uint8_t alloc_sz          = group_start_alloc;
+                for (int i=0; i<4; ++i)
                 {
-                    if (j && j % group_start_alloc == 0)
-                        alloc_sz += group_start_alloc;
-                    s_alloc_batch_sz[i * group_sz + j] = alloc_sz;
+                    for (int j=0; j<group_sz; ++j)
+                    {
+                        if (j && j % group_start_alloc == 0)
+                            alloc_sz += group_start_alloc;
+                        data[i * group_sz + j] = alloc_sz;
+                    }
+                    if (group_start_alloc > 2)
+                        group_start_alloc /= 2;
+                    alloc_sz += group_start_alloc;
                 }
-                if (group_start_alloc > 2)
-                    group_start_alloc /= 2;
-                alloc_sz += group_start_alloc;
             }
-        }
+            uint8_t data[SPP_GROUP_SIZE];
+        };
 
-        return n ? static_cast<uint32_t>(s_alloc_batch_sz[n-1]) : 0; // more aggressive alloc at the beginning
+        static alloc_batch_size s_alloc_batch_sz;
+        return n ? static_cast<uint32_t>(s_alloc_batch_sz.data[n-1]) : 0; // more aggressive alloc at the beginning
 
 #elif (SPP_ALLOC_SZ == 1)
         // use as little memory as possible - slowest insert/delete in table
@@ -2001,7 +2006,8 @@ public:
         _last_group(0),
         _table_size(sz),
         _num_buckets(0),
-        _alloc(alloc)  
+        _group_alloc(alloc),
+        _alloc(alloc)
                        // todo - copy or move allocator according to
                        // http://en.cppreference.com/w/cpp/container/unordered_map/unordered_map
     {
@@ -2948,14 +2954,7 @@ public:
     {
     }
 
-    sparse_hashtable& operator=(sparse_hashtable&& o)
-    {
-        using std::swap;
-
-        sparse_hashtable tmp(std::move(o));
-        swap(tmp, *this);
-        return *this;
-    }
+    sparse_hashtable& operator=(sparse_hashtable&& o) = default;
 #endif
 
     sparse_hashtable(MoveDontCopyT mover,
@@ -3006,7 +3005,7 @@ public:
         if (!empty() || num_deleted != 0)
         {
             table.clear();
-            table = Table(HT_DEFAULT_STARTING_BUCKETS);
+            table = Table(HT_DEFAULT_STARTING_BUCKETS, table.get_allocator());
         }
         settings.reset_thresholds(bucket_count());
         num_deleted = 0;
@@ -3725,6 +3724,8 @@ public:
                     const allocator_type& alloc) :
         rep(std::move(o.rep), alloc)
     {}
+
+    sparse_hash_map& operator=(sparse_hash_map &&o) = default;
 #endif
 
 #if !defined(SPP_NO_CXX11_HDR_INITIALIZER_LIST)

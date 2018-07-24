@@ -5,13 +5,15 @@
 Sparsepp is derived from Google's excellent [sparsehash](https://github.com/sparsehash/sparsehash) implementation. It aims to achieve the following objectives:
 
 - A drop-in alternative for unordered_map and unordered_set.
-- **Extremely low memory usage** (typically about one byte overhead per entry).
+- **Extremely low memory usage** (typically about one byte overhead per entry), and most important very small memory overhead when resizing.
 - **Very efficient**, typically faster than your compiler's unordered map/set or Boost's.
 - **C++11 support** (if supported by compiler).
 - ~~Single header~~ not anymore
 - **Tested** on Windows (vs2010-2015, g++), linux (g++, clang++) and MacOS (clang++).
 
-We believe Sparsepp provides an unparalleled combination of performance and memory usage, and will outperform your compiler's unordered_map on both counts. Only Google's `dense_hash_map` is consistently faster, at the cost of much greater memory usage (especially when the final size of the map is not known in advance). 
+We believe Sparsepp provides an unparalleled combination of performance and memory usage, and will outperform your compiler's unordered_map on both counts. Only Google's `dense_hash_map` is consistently faster, at the cost of much greater memory usage (especially when the final size of the map is not known in advance, and insertions cause a resizing). 
+
+This hash map. like Google's `dense_hash_map`, uses open addressing (meaning that the hash table entries are conceptually stored in a big array, and collisions are not resolved using a linked list, but by probing). A big drawback of open addressing is that when the array needs to be resized larger, the high mark for memory usage is typically 3 times the current map size (as we allocate a new array twice as big as the current one, and copy from the old array to the new one). Sparsepp's implementation resolves this memory usage issue, and the memory usage high mark shows only a small bump when resizing.
 
 For a detailed comparison of various hash implementations, including Sparsepp, please see our [write-up](bench.md).
 
@@ -50,13 +52,15 @@ int main()
 
 ## Installation
 
-No compilation is needed, as this is a header-only library. The installation consist in copying the sparsepp directory wherever it will be convenient to include in your project(s). Also make the path to this directory is provided to the compiler with the `-I` option.
+No compilation is needed, as this is a header-only library. The installation consist in copying the sparsepp directory wherever it will be convenient to include in your project(s).
 
-## Warning - iterator invalidation on erase/insert
+## Warning - iterator and reference invalidation on erase/insert
 
 1. erasing elements is likely to invalidate iterators (for example when calling `erase()`)
 
 2. inserting new elements is likely to invalidate iterators (iterator invalidation can also happen with std::unordered_map if rehashing occurs due to the insertion)
+
+3. references to values stored in a sparse_hash_map or set are likely to be invalidated on insert()/erase(). This is not the case for std::unordered_map or set.
 
 ## Usage
 
